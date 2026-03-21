@@ -60,7 +60,6 @@ let audioCtx, analyser, micStream;
 let running = false;
 let DB_OFFSET = parseFloat(localStorage.getItem('dbOffset')) || DB_OFFSET_DEFAULT;
 let drawTimer = null;
-let selectedMicDeviceId = null;  // 選択されたマイクのデバイスID
 
 const canvas = document.getElementById("psdCanvas");
 const ctx = canvas.getContext("2d");
@@ -73,42 +72,6 @@ let sliderX = null;
 // ==========================================
 // 2. UI & Audio Control
 // ==========================================
-
-// 利用可能なマイクを列挙して表示
-async function enumerateMicrophones() {
-    try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioInputs = devices.filter(device => device.kind === 'audioinput');
-        const micSelect = document.getElementById('micSelect');
-
-        // 既存のオプションをクリア（最初の"選択してください"は残す）
-        while (micSelect.options.length > 1) {
-            micSelect.remove(1);
-        }
-
-        // オーディオ入力デバイスをオプションに追加
-        audioInputs.forEach((device, index) => {
-            const option = document.createElement('option');
-            option.value = device.deviceId;
-            option.textContent = device.label || `Microphone ${index + 1}`;
-            micSelect.appendChild(option);
-        });
-    } catch (e) {
-        console.error('マイクの列挙に失敗:', e);
-    }
-}
-
-// ページロード時にマイクを列挙
-window.addEventListener('load', enumerateMicrophones);
-
-// マイク選択時のイベント
-document.getElementById('micSelect').addEventListener('change', (e) => {
-    selectedMicDeviceId = e.target.value || null;
-    if (running) {
-        stopAudio();
-    }
-});
-
 function resizeCanvas() {
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
@@ -141,25 +104,8 @@ async function startAudio() {
     if (audioCtx.state === 'suspended') await audioCtx.resume();
 
     try {
-        // マイクが選択されていない場合は警告
-        if (!selectedMicDeviceId) {
-            alert("Please select a microphone.");
-            return;
-        }
-
-        const audioConstraints = {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
-        };
-
-        // マイクが選択されている場合、デバイスIDを指定
-        if (selectedMicDeviceId) {
-            audioConstraints.deviceId = { exact: selectedMicDeviceId };
-        }
-
         micStream = await navigator.mediaDevices.getUserMedia({
-            audio: audioConstraints
+            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
         });
         const src = audioCtx.createMediaStreamSource(micStream);
         analyser = audioCtx.createAnalyser();
@@ -171,7 +117,7 @@ async function startAudio() {
         if (drawTimer) clearInterval(drawTimer);
         drawTimer = setInterval(updateAll, 100);
     } catch (e) {
-        alert("Microphone access failed: " + e.message);
+        alert("Turn on the microphone.");
     }
 }
 
