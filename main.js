@@ -1,46 +1,54 @@
 // ==========================================
 // SPL(dBA), Loudness(sone), Sharpness(acum) Realtime Analyzer
 // ==========================================
-const DB_OFFSET_DEFAULT = 110;  // AudioContext仕様 -100 ~ 0 dB > Androidスマホはおよそ +110dB 程度、iPhoneは120dBぐらい
+// デバイスに応じたデフォルトオフセット値の設定
+let DB_OFFSET_DEFAULT;
+if (navigator.userAgent.includes('Android')) {
+    DB_OFFSET_DEFAULT = 115;  // Androidのデフォルトオフセット: 115dB
+} else if (navigator.userAgent.includes('iPhone')) {
+    DB_OFFSET_DEFAULT = 130;  // iPhoneのデフォルトオフセット: 130dB
+} else {
+    DB_OFFSET_DEFAULT = 90;  // その他のデバイスのデフォルトオフセット: 90dB
+}
 const BAND_COUNT = 31;
 
-// 3rd oct center, Hz
+// 3rd oct center, Hz - 1/3オクターブバンド中心周波数(Hz)
 const F_3RDOCT_CENTER = [
     20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 
     200, 250, 315, 400, 500, 630, 800, 1000, 1250, 1600, 
     2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000
 ];
-// 3rd oct lower cutoff, Hz
+// 3rd oct lower cutoff, Hz - 1/3オクターブバンド下限周波数(Hz)
 const F_3RDOCT_LOWER = [
     17.8, 22.3, 28.1, 35.6, 44.5, 56.1, 71.3, 89.1, 111.4, 142.5,
     178.2, 222.7, 280.6, 356.4, 445.4, 561.3, 712.7, 890.9, 1113.6, 1425.4,
     1781.8, 2227.2, 2806.3, 3563.6, 4454.5, 5612.7, 7127.2, 8909.0, 11136.2, 14254.4, 17818.0
 ];
-// 3rd Oct upper cutoff, Hz
+// 3rd Oct upper cutoff, Hz - 1/3オクターブバンド上限周波数(Hz)
 const F_3RDOCT_UPPER = [
     22.4, 28.1, 35.4, 44.9, 56.1, 70.7, 89.8, 112.2, 140.3, 179.6,
     224.5, 280.6, 353.6, 449.0, 561.2, 707.2, 898.0, 1122.5, 1403.1, 1795.9,
     2244.9, 2806.2, 3535.8, 4489.8, 5612.3, 7071.5, 8979.7, 11224.6, 14030.8, 17959.4, 22449.2
 ];
-// 3rd oct center, bark
+// 3rd oct center, bark - 1/3オクターブバンド中心周波数のバーク値
 const EBR_CENTER = [
     0.198, 0.247, 0.311, 0.395, 0.494, 0.622, 0.790, 0.987, 1.232, 1.575,
     1.963, 2.445, 3.061, 3.847, 4.736, 5.830, 7.141, 8.511, 9.974, 11.633,
     13.104, 14.509, 15.888, 17.259, 18.539, 19.894, 21.275, 22.424, 23.345, 24.094, 24.575
 ];
-// 3rd oct band width, bark
+// 3rd oct band width, bark - 1/3オクターブバンドの幅(バーク値)
 const EBR_DELTA = [
     0.046, 0.057, 0.072, 0.091, 0.114, 0.144, 0.183, 0.228, 0.284, 0.361,
     0.448, 0.554, 0.684, 0.841, 1.005, 1.181, 1.350, 1.473, 1.542, 1.545,
     1.492, 1.416, 1.347, 1.319, 1.340, 1.359, 1.277, 1.078, 0.830, 0.587, 0.422
 ];
-// Outer and middle/inner ear filter, dB, ECMA-418-2
+// Outer and middle/inner ear filter, dB, ECMA-418-2 - 外耳・中耳フィルタ補正値(dB), ECMA-418-2
 const DB_GAIN = [
     -24.3, -22.4, -20.4, -18.4, -16.5, -14.7, -12.8, -11.2,  -9.7,  -8.2,
-     -7.0,  -5.8,  -4.4,  -2.9,  -1.4,   0.2,   1.4,   0,    -3,    -1.8,
-      1.3,   3.5,   5.2,   6.4,   3.7,  -3.2,  -9,   -10.2, -10.4,  -15.1, -25.9
+    -7.0,  -5.8,  -4.4,  -2.9,  -1.4,   0.2,   1.4,   0,    -3,    -1.8,
+    1.3,   3.5,   5.2,   6.4,   3.7,  -3.2,  -9,   -10.2, -10.4,  -15.1, -25.9
 ];
-// Threshold energy of 0 phone
+// Threshold energy of 0 phone - 可聴ラウドネス0フォンのエネルギー閾値
 const E_THRESHOLD = [
     70794578.4, 7413102.4, 891250.9, 128825, 25118.9, 5623.4, 1412.5, 446.7, 162.2, 61.7,
     27.5, 13.8, 7.2, 4.2, 2.8, 2, 1.7, 1.7, 2.2, 1.5,
@@ -134,8 +142,7 @@ function updateAll() {
     document.getElementById("dbaValue").textContent = results.SPL.toFixed(1);
     document.getElementById("loudnessValue").textContent = results.loudness.toFixed(2);
     document.getElementById("sharpnessValue").textContent = results.sharpness.toFixed(2);
-    // document.getElementById("sharpnessHz").textContent = results.sharpnessPeakHz.toFixed(0);
-
+    
     drawFFT(buffer, sampleRate);
 }
 
@@ -143,9 +150,7 @@ function calculateAcousticParameters(buffer, sampleRate) {
     const BIN_f = sampleRate / analyser.fftSize;
     let E_3RDOCT_BAND = new Float32Array(BAND_COUNT).fill(0);
     let E_TOTAL_AW = 0;
-    // let BandMaxHz = new Array(BAND_COUNT).fill(0);
-    // let BandMaxDB = new Array(BAND_COUNT).fill(-Infinity);
-
+    
     // --- 周波数ビンごとの集計 ---
     for (let i = 0; i < buffer.length; i++) {
         const f = i * BIN_f;
@@ -163,11 +168,6 @@ function calculateAcousticParameters(buffer, sampleRate) {
             if (f >= F_3RDOCT_LOWER[j] && f < F_3RDOCT_UPPER[j]) {
                 E_3RDOCT_BAND[j] += L_ENERGY;
             }
-                // // バンド毎ピークの保存
-                // if (L_DB > BandMaxDB[j]) {
-                //    BandMaxDB[j] = L_DB;
-                //    BandMaxHz[j] = f;
-                // }
         }
     }
 
@@ -214,8 +214,7 @@ function calculateAcousticParameters(buffer, sampleRate) {
     return {
         loudness: TOTAL_LOUDNESS,
         sharpness: TOTAL_SHARPNESS,
-        SPL: 10 * Math.log10(E_TOTAL_AW + 1e-12),
-        // sharpnessPeakHz: F_3RDOCT_CENTER[maxSIndex] //BandMaxHz[maxSIndex],
+        SPL: 10 * Math.log10(E_TOTAL_AW + 1e-12),        
     };
 }
 
