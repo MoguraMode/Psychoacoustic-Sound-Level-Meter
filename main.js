@@ -4,9 +4,9 @@
 // デバイスに応じたデフォルトオフセット値の設定
 let DB_OFFSET_DEFAULT;
 if (navigator.userAgent.includes('Android')) {
-    DB_OFFSET_DEFAULT = 115;  // Androidのデフォルトオフセット: 117dB
+    DB_OFFSET_DEFAULT = 117;  // Androidのデフォルトオフセット: 117dB
 } else if (navigator.userAgent.includes('iPhone')) {
-    DB_OFFSET_DEFAULT = 130;  // iPhoneのデフォルトオフセット: 132dB
+    DB_OFFSET_DEFAULT = 132;  // iPhoneのデフォルトオフセット: 132dB
 } else {
     DB_OFFSET_DEFAULT = 90;  // その他のデバイスのデフォルトオフセット: 90dB
 }
