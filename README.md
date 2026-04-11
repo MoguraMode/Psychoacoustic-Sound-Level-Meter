@@ -20,7 +20,7 @@ but I do not provide support or maintenance. Features may change or stop working
 - **Loudness, Sharpness**<br/>
   Based on Zwicker Loudness and Aures Sharpness. Please note that the calculation is simplified and does not fully comply with ISO 532-1.
 - **Calibration**<br/>
-  Calibration offset is set to 110dB. A common level for typical smartphone or PC microphones are 90 ~ 120dBA. Actual sensitivity varies significantly by device.
+  Calibration offset is set to 115dB(Android) and 130dB(iPhone). A common level for typical smartphone or PC microphones are 90 ~ 130dBA. Actual sensitivity varies significantly by device.
 
 **Notes**
 This code sets {echoCancellation, noiseSuppression, autoGainControl} to "false," but noise cancellation may be forced on some systems. In this case, please disable the noise cancellation feature in your device settings.
